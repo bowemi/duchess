@@ -7,6 +7,8 @@ duchess::java_package! {
 
     public class Java_Can_Call_Rust_Java_Function {
         native java.lang.String base_greeting(java.lang.String);
+        native int getInt();
+        native int echoInt(int);
     }
 }
 
@@ -16,4 +18,19 @@ fn base_greeting(
     name: &java::lang::String,
 ) -> duchess::Result<Java<java::lang::String>> {
     Ok(name.execute().unwrap())
+}
+
+#[duchess::java_function(java_to_rust_greeting.Java_Can_Call_Rust_Java_Function::getInt)]
+fn get_int(
+    _this: &java_to_rust_greeting::Java_Can_Call_Rust_Java_Function,
+) -> duchess::Result<i32> {
+    Ok(0)
+}
+
+#[duchess::java_function(java_to_rust_greeting.Java_Can_Call_Rust_Java_Function::echoInt)]
+fn echo_int(
+    _this: &java_to_rust_greeting::Java_Can_Call_Rust_Java_Function,
+    input: i32,
+) -> duchess::Result<i32> {
+    input
 }

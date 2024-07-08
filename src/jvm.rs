@@ -5,7 +5,7 @@ use crate::{
     java::lang::{Class, Throwable},
     link::{IntoJavaFns, JavaFunction},
     not_null::NotNull,
-    plumbing::{FromRef, ToJavaImpl},
+    plumbing::{FromRef, ToJavaImpl, ToJavaScalar},
     raw::{self, EnvPtr, JvmPtr, ObjectPtr},
     thread,
     try_catch::TryCatch,
@@ -182,19 +182,22 @@ where
 ///
 /// Must be invoked as the entire body of a JNI native function, with
 /// `env` being the `EnvPtr` argument provided.
-pub unsafe fn native_function_returning_scalar<J, R>(env: EnvPtr<'_>, op: impl FnOnce() -> R) -> R
+pub unsafe fn native_function_returning_scalar<S, R>(
+    env: EnvPtr<'_>,
+    op: impl FnOnce() -> R,
+) -> impl JavaScalar
 where
-    J: Upcast<crate::java::lang::Object> + Upcast<J>,
-    R: JavaScalar,
+    S: JavaScalar + Default,
+    R: ToJavaScalar<S>,
 {
     init_jvm_from_native_function(env);
     let _callback_guard = thread::attach_from_jni_callback(env);
 
     let result = match std::panic::catch_unwind(AssertUnwindSafe(|| op())) {
-        Ok(result) => result,
+        Ok(result) => R::to_java_scalar(result),
         Err(e) => {
             rust_panic_to_java_exception(e);
-            R::default()
+            S::default()
         }
     };
 
@@ -515,7 +518,7 @@ unsafe impl<T: JavaObject> JavaType for T {
     }
 }
 
-pub trait JavaScalar: JavaType + Default {}
+pub trait JavaScalar: Default {}
 
 macro_rules! scalar {
     ($($rust:ty: $array_class:literal,)*) => {

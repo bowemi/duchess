@@ -1,7 +1,8 @@
 use std::{collections::HashMap, marker::PhantomData};
 
 use crate::{
-    cast::Upcast, from_ref::FromRef, java, jvm::JavaView, Error, Java, Jvm, JvmOp, Local,
+    cast::Upcast, from_ref::FromRef, java, jvm::JavaScalar, jvm::JavaView, Error, Java, Jvm, JvmOp,
+    Local,
 };
 
 pub trait ToJava {
@@ -209,7 +210,7 @@ where
 impl<J, R> ToJavaImpl<J> for &R
 where
     J: Upcast<java::lang::Object>,
-    R: ?Sized + ToJavaImpl<J>
+    R: ?Sized + ToJavaImpl<J>,
 {
     fn to_java_impl<'jvm>(
         rust: &Self,
@@ -283,6 +284,25 @@ where
                 )),
                 Error::JvmInternal(t) => Err(Error::JvmInternal(t.clone())),
             },
+        }
+    }
+}
+
+pub trait ToJavaScalar<S>
+where
+    S: JavaScalar,
+{
+    fn to_java_scalar(rust: Self) -> S;
+}
+
+impl<S> ToJavaScalar<S> for crate::Result<S>
+where
+    S: JavaScalar,
+{
+    fn to_java_scalar(rust: Self) -> S {
+        match rust {
+            Ok(r) => r,
+            Err(_e) => todo!("figure this out michael"),
         }
     }
 }
